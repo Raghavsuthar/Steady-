@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:translateX="0"
+        android:translateY="0">
+        <!-- Base balancing stone -->
+        <path
+            android:fillColor="#4F7A5E"
+            android:pathData="M 36,66 C 36,62 44,59 54,59 C 64,59 72,62 72,66 C 72,70 64,73 54,73 C 44,73 36,70 36,66 Z" />
+        <!-- Middle stone -->
+        <path
+            android:fillColor="#7FA38A"
+            android:pathData="M 41,55 C 41,52 47,49 54,49 C 61,49 67,52 67,55 C 67,58 61,61 54,61 C 47,61 41,58 41,55 Z" />
+        <!-- Top stone -->
+        <path
+            android:fillColor="#8FA9C4"
+            android:pathData="M 46,45 C 46,42 50,40 54,40 C 58,40 62,42 62,45 C 62,48 58,50 54,50 C 50,50 46,48 46,45 Z" />
+        <!-- Serene sprout / gentle leaf of resilience -->
+        <path
+            android:fillColor="#4F7A5E"
+            android:pathData="M 54,40 C 54,32 59,28 65,28 C 65,34 60,39 54,40 Z" />
+        <path
+            android:fillColor="#7FA38A"
+            android:pathData="M 54,40 C 54,34 50,31 45,32 C 45,37 49,40 54,40 Z" />
+    </group>
+</vector>
