@@ -7,6 +7,7 @@ import com.example.data.local.SteadyDatabase
 import com.example.data.model.ErpSession
 import com.example.data.model.LadderItem
 import com.example.data.model.PersonalGoal
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -72,7 +73,7 @@ class SteadyRepositoryTransactionTest {
         repository.recordSession(session(ladderId, first))
         repository.recordSession(session(ladderId, second))
 
-        assertEquals(2, database.steadyDao().getSessionCountFlowValueNotAvailableForTest())
+        assertEquals(2, database.steadyDao().getAllSessions().first().size)
         assertEquals(1, database.steadyDao().getGoalPracticeDayCount(goalId))
         assertEquals(1, database.steadyDao().getGoalById(goalId)!!.daysPracticedCount)
     }
@@ -104,6 +105,33 @@ class SteadyRepositoryTransactionTest {
         val stored = database.steadyDao().getSessionById(1L)
         assertNotNull(stored)
         assertFalse(stored!!.wasCompleted)
+    }
+
+
+    @Test
+    fun failureDuringGoalPracticeWriteRollsBackSessionAndLadderProgress() = runBlocking {
+        val goalId = database.steadyDao().insertGoal(PersonalGoal(title = "Daily activity"))
+        val ladderId = database.steadyDao().insertLadderItem(
+            LadderItem(title = "Touch a door handle", category = "Contamination", baselineSuds = 50, personalGoalId = goalId)
+        )
+        database.openHelper.writableDatabase.execSQL(
+            """CREATE TRIGGER fail_goal_practice_insert
+               BEFORE INSERT ON goal_practice_log
+               BEGIN SELECT RAISE(ABORT, 'forced test failure'); END"""
+        )
+
+        var failure: Throwable? = null
+        try {
+            repository.recordSession(session(ladderId, localTimestamp(2026, Calendar.OCTOBER, 16)))
+        } catch (caught: Throwable) {
+            failure = caught
+        }
+
+        assertNotNull("The forced persistence failure must reach the caller", failure)
+        assertEquals(0, database.steadyDao().getAllSessions().first().size)
+        assertEquals(0, database.steadyDao().getLadderItemById(ladderId)!!.sessionCount)
+        assertEquals(0, database.steadyDao().getGoalPracticeDayCount(goalId))
+        assertEquals(0, database.steadyDao().getGoalById(goalId)!!.daysPracticedCount)
     }
 
     private fun session(ladderId: Long, timestamp: Long, endSuds: Int = 30) = ErpSession(
