@@ -1,6 +1,9 @@
 package com.example.data.model
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "settings")
@@ -17,7 +20,19 @@ data class SettingsEntity(
     val aiCoachConsentAccepted: Boolean = false,
     val language: String = "en",
     val allowNotifications: Boolean = false,
-    val demoDataLoaded: Boolean = false
+    val demoDataLoaded: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val appLockEnabled: Boolean = false,
+    @ColumnInfo(defaultValue = "5") val appLockTimeoutMinutes: Int = 5,
+    @ColumnInfo(defaultValue = "0") val secureScreenEnabled: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val discreetMode: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val notificationsEnabled: Boolean = false,
+    @ColumnInfo(defaultValue = "''") val reminderTimes: String = "",
+    @ColumnInfo(defaultValue = "''") val quietHoursStart: String = "",
+    @ColumnInfo(defaultValue = "''") val quietHoursEnd: String = "",
+    @ColumnInfo(defaultValue = "'IN'") val crisisRegion: String = "IN",
+    @ColumnInfo(defaultValue = "'SYSTEM'") val themeMode: String = "SYSTEM",
+    @ColumnInfo(defaultValue = "''") val myWhy: String = "",
+    @ColumnInfo(defaultValue = "0") val sampleDataActive: Boolean = false
 )
 
 @Entity(tableName = "ladder_items")
@@ -33,7 +48,14 @@ data class LadderItem(
     val sessionCount: Int = 0,
     val lastSuds: Int? = null,
     val personalGoalId: Long? = null,
-    val isArchived: Boolean = false
+    val isArchived: Boolean = false,
+    @ColumnInfo(defaultValue = "''") val responsePreventionRule: String = "",
+    @ColumnInfo(defaultValue = "'[]'") val safetyBehaviorsToDrop: String = "[]",
+    @ColumnInfo(defaultValue = "''") val avoidanceNotes: String = "",
+    @ColumnInfo(defaultValue = "'OTHER'") val themeTag: String = "OTHER",
+    @ColumnInfo(defaultValue = "0") val clinicianApproved: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val isSample: Boolean = false,
+    @ColumnInfo(defaultValue = "NULL") val archivedAt: Long? = null
 )
 
 @Entity(tableName = "erp_sessions")
@@ -53,7 +75,17 @@ data class ErpSession(
     val timestamp: Long = System.currentTimeMillis(),
     val compulsionResisted: String = "",
     val alternativeAction: String = "",
-    val wasCompleted: Boolean = true
+    val wasCompleted: Boolean = true,
+    @ColumnInfo(defaultValue = "NULL") val willingnessStart: Int? = null,
+    @ColumnInfo(defaultValue = "NULL") val willingnessEnd: Int? = null,
+    @ColumnInfo(defaultValue = "NULL") val tolerabilityBeliefStart: Int? = null,
+    @ColumnInfo(defaultValue = "NULL") val tolerabilityBeliefEnd: Int? = null,
+    @ColumnInfo(defaultValue = "NULL") val ritualFree: Boolean? = null,
+    @ColumnInfo(defaultValue = "'[]'") val safetyBehaviorsUsed: String = "[]",
+    @ColumnInfo(defaultValue = "'[]'") val contextTags: String = "[]",
+    @ColumnInfo(defaultValue = "NULL") val plannedSessionId: Long? = null,
+    @ColumnInfo(defaultValue = "0") val uncertaintyTarget: Int = 0,
+    @ColumnInfo(defaultValue = "0") val isSample: Boolean = false
 )
 
 @Entity(tableName = "imaginal_scripts")
@@ -62,7 +94,11 @@ data class ImaginalScript(
     val title: String,
     val text: String,
     val audioPath: String? = null,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(defaultValue = "NULL") val audioFileName: String? = null,
+    @ColumnInfo(defaultValue = "NULL") val durationSeconds: Int? = null,
+    @ColumnInfo(defaultValue = "'OTHER'") val themeTag: String = "OTHER",
+    @ColumnInfo(defaultValue = "0") val clinicianApproved: Boolean = false
 )
 
 @Entity(tableName = "ritual_logs")
@@ -72,7 +108,11 @@ data class RitualLog(
     val trigger: String = "",
     val durationMinutes: Int = 10,
     val outcome: String = "RESISTED", // RESISTED, DELAYED, PERFORMED
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    @ColumnInfo(defaultValue = "'[\"OTHER\"]'") val categories: String = "[\"OTHER\"]",
+    @ColumnInfo(defaultValue = "0") val isMental: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val askedOthersTimes: Int = 0,
+    @ColumnInfo(defaultValue = "0") val isSample: Boolean = false
 )
 
 @Entity(tableName = "struggle_events")
@@ -83,7 +123,11 @@ data class StruggleEvent(
     val endSuds: Int = 40,
     val delayMinutes: Int = 10,
     val note: String = "",
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    @ColumnInfo(defaultValue = "0") val didDelay: Boolean = false,
+    @ColumnInfo(defaultValue = "'STILL_DECIDING'") val finalChoice: String = "STILL_DECIDING",
+    @ColumnInfo(defaultValue = "'[]'") val categories: String = "[]",
+    @ColumnInfo(defaultValue = "0") val isSample: Boolean = false
 )
 
 @Entity(tableName = "personal_goals")
@@ -106,7 +150,95 @@ data class ReminderSchedule(
     val timeMinute: Int = 0,
     val weekdaysOnly: Boolean = false,
     val includeWeekends: Boolean = true,
-    val lastNotificationTimestamp: Long = 0L
+    val lastNotificationTimestamp: Long = 0L,
+    @ColumnInfo(defaultValue = "127") val daysOfWeekMask: Int = 127,
+    @ColumnInfo(defaultValue = "NULL") val lastScheduledAt: Long? = null
+)
+
+@Entity(
+    tableName = "goal_practice_log",
+    primaryKeys = ["goalId", "localDate"],
+    foreignKeys = [
+        ForeignKey(
+            entity = PersonalGoal::class,
+            parentColumns = ["id"],
+            childColumns = ["goalId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index(value = ["localDate"])]
+)
+data class GoalPracticeLog(
+    val goalId: Long,
+    val localDate: String,
+    val createdAt: Long
+)
+
+@Entity(
+    tableName = "imaginal_sessions",
+    foreignKeys = [
+        ForeignKey(
+            entity = ImaginalScript::class,
+            parentColumns = ["id"],
+            childColumns = ["scriptId"],
+            onDelete = ForeignKey.SET_NULL
+        )
+    ],
+    indices = [Index(value = ["startedAt"])]
+)
+data class ImaginalSession(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(defaultValue = "NULL") val scriptId: Long? = null,
+    val startedAt: Long,
+    @ColumnInfo(defaultValue = "0") val durationSeconds: Int = 0,
+    @ColumnInfo(defaultValue = "1") val loops: Int = 1,
+    @ColumnInfo(defaultValue = "NULL") val startSuds: Int? = null,
+    @ColumnInfo(defaultValue = "NULL") val endSuds: Int? = null,
+    @ColumnInfo(defaultValue = "NULL") val beliefStart: Int? = null,
+    @ColumnInfo(defaultValue = "NULL") val beliefEnd: Int? = null,
+    @ColumnInfo(defaultValue = "''") val note: String = "",
+    val createdAt: Long
+)
+
+@Entity(
+    tableName = "planned_sessions",
+    foreignKeys = [
+        ForeignKey(
+            entity = LadderItem::class,
+            parentColumns = ["id"],
+            childColumns = ["ladderItemId"],
+            onDelete = ForeignKey.SET_NULL
+        )
+    ],
+    indices = [Index(value = ["scheduledAt"]), Index(value = ["ladderItemId"])]
+)
+data class PlannedSession(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(defaultValue = "NULL") val ladderItemId: Long? = null,
+    val scheduledAt: Long,
+    @ColumnInfo(defaultValue = "'PLANNED'") val status: String = "PLANNED",
+    @ColumnInfo(defaultValue = "NULL") val reminderLeadMinutes: Int? = null,
+    @ColumnInfo(defaultValue = "''") val ifThenPlan: String = "",
+    val createdAt: Long
+)
+
+@Entity(tableName = "checkins", indices = [Index(value = ["date"])])
+data class Checkin(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val date: String,
+    val instrumentId: String,
+    @ColumnInfo(defaultValue = "'{}'") val answersJson: String = "{}",
+    @ColumnInfo(defaultValue = "NULL") val totalScore: Int? = null,
+    @ColumnInfo(defaultValue = "''") val note: String = "",
+    val createdAt: Long
+)
+
+@Entity(tableName = "active_session_state")
+data class ActiveSessionState(
+    @PrimaryKey @ColumnInfo(defaultValue = "1") val id: Int = 1,
+    val sessionType: String,
+    val stateJson: String,
+    val updatedAt: Long
 )
 
 // Helper structure for parsed check-ins
