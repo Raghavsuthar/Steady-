@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: steady-android-${{ github.ref }}
@@ -51,6 +51,19 @@ jobs:
 
       - name: Assemble debug APK
         run: gradle :app:assembleDebug --stacktrace
+
+      - name: Commit generated v2 schema from branch push
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/feat/phase-0-stabilize'
+        run: |
+          if [ -f app/schemas/com.example.data.local.SteadyDatabase/2.json ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add app/schemas/com.example.data.local.SteadyDatabase/2.json
+            if ! git diff --cached --quiet; then
+              git commit -m "test: capture generated Room v2 schema [skip ci]"
+              git push
+            fi
+          fi
 
       - name: Upload generated Room schema
         if: always()
