@@ -57,7 +57,7 @@ fun DistractionToolsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     )
 
     Column(
-        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),
+        modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -68,12 +68,12 @@ fun DistractionToolsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 Text("Reset & Refocus", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Text("Short activities for an anxious moment", style = MaterialTheme.typography.bodySmall, color = MutedText)
             }
-            Box(Modifier.size(42.dp).clip(CircleShape).background(SandAccent.copy(alpha = 0.65f)), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(42.dp).clip(CircleShape).background(com.example.ui.theme.MintSurface), contentAlignment = Alignment.Center) {
                 Icon(Icons.Default.Spa, contentDescription = null, tint = SagePrimaryDeep)
             }
         }
 
-        SteadyCard(Modifier.fillMaxWidth(), backgroundColor = DustyBlue.copy(alpha = 0.12f), elevation = 0.dp) {
+        SteadyCard(Modifier.fillMaxWidth(), backgroundColor = com.example.ui.theme.BlueSurface, elevation = 0.dp) {
             Column(Modifier.padding(16.dp)) {
                 Text("You don't have to make anxiety disappear", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = SagePrimaryDeep)
                 Spacer(Modifier.height(6.dp))
@@ -126,7 +126,7 @@ fun DistractionToolsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
 
             ResetTool.COLOR_HUNT -> SteadyCard(Modifier.fillMaxWidth(), testTag = "reset_color_hunt_card") {
                 Column(Modifier.fillMaxWidth().padding(22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(Modifier.size(64.dp).clip(CircleShape).background(SandAccent.copy(alpha = 0.55f)), contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(64.dp).clip(CircleShape).background(com.example.ui.theme.PeachSurface), contentAlignment = Alignment.Center) {
                         Icon(Icons.Default.ColorLens, contentDescription = null, tint = SagePrimaryDeep, modifier = Modifier.size(32.dp))
                     }
                     Spacer(Modifier.height(12.dp))
@@ -139,7 +139,7 @@ fun DistractionToolsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                         onClick = { if (foundObjects < 5) foundObjects++ },
                         enabled = foundObjects < 5,
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = SagePrimary, contentColor = PureWhite)
+                        colors = ButtonDefaults.buttonColors(containerColor = SagePrimaryDeep, contentColor = PureWhite)
                     ) { Text(if (foundObjects < 5) "I spotted one" else "Round complete") }
                     Spacer(Modifier.height(8.dp))
                     OutlinedButton(onClick = { colorIndex = (colorIndex + 1) % colors.size; foundObjects = 0 }, modifier = Modifier.fillMaxWidth()) {
