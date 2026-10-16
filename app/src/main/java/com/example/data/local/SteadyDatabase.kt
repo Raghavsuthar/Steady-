@@ -6,10 +6,15 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.example.data.model.ActiveSessionState
+import com.example.data.model.Checkin
 import com.example.data.model.ErpSession
+import com.example.data.model.GoalPracticeLog
 import com.example.data.model.ImaginalScript
+import com.example.data.model.ImaginalSession
 import com.example.data.model.LadderItem
 import com.example.data.model.PersonalGoal
+import com.example.data.model.PlannedSession
 import com.example.data.model.ReminderSchedule
 import com.example.data.model.RitualLog
 import com.example.data.model.SettingsEntity
@@ -17,6 +22,8 @@ import com.example.data.model.StruggleEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+
+internal const val STEADY_DATABASE_VERSION = 3
 
 @Database(
     entities = [
@@ -27,9 +34,14 @@ import kotlinx.coroutines.launch
         RitualLog::class,
         StruggleEvent::class,
         PersonalGoal::class,
-        ReminderSchedule::class
+        ReminderSchedule::class,
+        GoalPracticeLog::class,
+        ImaginalSession::class,
+        PlannedSession::class,
+        Checkin::class,
+        ActiveSessionState::class
     ],
-    version = 2,
+    version = STEADY_DATABASE_VERSION,
     exportSchema = true
 )
 abstract class SteadyDatabase : RoomDatabase() {
@@ -83,6 +95,144 @@ abstract class SteadyDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Settings — preserve all existing preferences and add explicit v3 defaults.
+                db.execSQL("ALTER TABLE settings ADD COLUMN appLockEnabled INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE settings ADD COLUMN appLockTimeoutMinutes INTEGER NOT NULL DEFAULT 5")
+                db.execSQL("ALTER TABLE settings ADD COLUMN secureScreenEnabled INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE settings ADD COLUMN discreetMode INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE settings ADD COLUMN notificationsEnabled INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE settings ADD COLUMN reminderTimes TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE settings ADD COLUMN quietHoursStart TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE settings ADD COLUMN quietHoursEnd TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE settings ADD COLUMN crisisRegion TEXT NOT NULL DEFAULT 'IN'")
+                db.execSQL("ALTER TABLE settings ADD COLUMN themeMode TEXT NOT NULL DEFAULT 'SYSTEM'")
+                db.execSQL("ALTER TABLE settings ADD COLUMN myWhy TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE settings ADD COLUMN sampleDataActive INTEGER NOT NULL DEFAULT 0")
+
+                // Ladder items — keep clinician approval separate from sample/demo provenance.
+                db.execSQL("ALTER TABLE ladder_items ADD COLUMN responsePreventionRule TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE ladder_items ADD COLUMN safetyBehaviorsToDrop TEXT NOT NULL DEFAULT '[]'")
+                db.execSQL("ALTER TABLE ladder_items ADD COLUMN avoidanceNotes TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE ladder_items ADD COLUMN themeTag TEXT NOT NULL DEFAULT 'OTHER'")
+                db.execSQL("ALTER TABLE ladder_items ADD COLUMN clinicianApproved INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE ladder_items ADD COLUMN isSample INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE ladder_items ADD COLUMN archivedAt INTEGER DEFAULT NULL")
+
+                // ERP sessions — retain legacy checkInsJson exactly as stored.
+                db.execSQL("ALTER TABLE erp_sessions ADD COLUMN willingnessStart INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE erp_sessions ADD COLUMN willingnessEnd INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE erp_sessions ADD COLUMN tolerabilityBeliefStart INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE erp_sessions ADD COLUMN tolerabilityBeliefEnd INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE erp_sessions ADD COLUMN ritualFree INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE erp_sessions ADD COLUMN safetyBehaviorsUsed TEXT NOT NULL DEFAULT '[]'")
+                db.execSQL("ALTER TABLE erp_sessions ADD COLUMN contextTags TEXT NOT NULL DEFAULT '[]'")
+                db.execSQL("ALTER TABLE erp_sessions ADD COLUMN plannedSessionId INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE erp_sessions ADD COLUMN uncertaintyTarget INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE erp_sessions ADD COLUMN isSample INTEGER NOT NULL DEFAULT 0")
+
+                // Reminder schedule: retain legacy flags and translate them into an explicit weekday mask.
+                db.execSQL("ALTER TABLE reminder_schedules ADD COLUMN daysOfWeekMask INTEGER NOT NULL DEFAULT 127")
+                db.execSQL("ALTER TABLE reminder_schedules ADD COLUMN lastScheduledAt INTEGER DEFAULT NULL")
+                db.execSQL("""
+                    UPDATE reminder_schedules
+                    SET daysOfWeekMask = CASE
+                        WHEN weekdaysOnly = 1 AND includeWeekends = 0 THEN 31
+                        WHEN weekdaysOnly = 1 AND includeWeekends = 1 THEN 127
+                        WHEN weekdaysOnly = 0 AND includeWeekends = 1 THEN 127
+                        ELSE 0
+                    END
+                """.trimIndent())
+
+                // Ritual logs and struggle events — existing history remains untouched.
+                db.execSQL("ALTER TABLE ritual_logs ADD COLUMN categories TEXT NOT NULL DEFAULT '[\"OTHER\"]'")
+                db.execSQL("ALTER TABLE ritual_logs ADD COLUMN isMental INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE ritual_logs ADD COLUMN askedOthersTimes INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE ritual_logs ADD COLUMN isSample INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE struggle_events ADD COLUMN didDelay INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE struggle_events ADD COLUMN finalChoice TEXT NOT NULL DEFAULT 'STILL_DECIDING'")
+                db.execSQL("ALTER TABLE struggle_events ADD COLUMN categories TEXT NOT NULL DEFAULT '[]'")
+                db.execSQL("ALTER TABLE struggle_events ADD COLUMN isSample INTEGER NOT NULL DEFAULT 0")
+
+                // Imaginal scripts: audioPath is intentionally retained for compatibility.
+                db.execSQL("ALTER TABLE imaginal_scripts ADD COLUMN audioFileName TEXT DEFAULT NULL")
+                db.execSQL("ALTER TABLE imaginal_scripts ADD COLUMN durationSeconds INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE imaginal_scripts ADD COLUMN themeTag TEXT NOT NULL DEFAULT 'OTHER'")
+                db.execSQL("ALTER TABLE imaginal_scripts ADD COLUMN clinicianApproved INTEGER NOT NULL DEFAULT 0")
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS goal_practice_log (
+                        goalId INTEGER NOT NULL,
+                        localDate TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        PRIMARY KEY(goalId, localDate),
+                        FOREIGN KEY(goalId) REFERENCES personal_goals(id)
+                            ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_goal_practice_log_localDate ON goal_practice_log(localDate)")
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS imaginal_sessions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        scriptId INTEGER DEFAULT NULL,
+                        startedAt INTEGER NOT NULL,
+                        durationSeconds INTEGER NOT NULL DEFAULT 0,
+                        loops INTEGER NOT NULL DEFAULT 1,
+                        startSuds INTEGER DEFAULT NULL,
+                        endSuds INTEGER DEFAULT NULL,
+                        beliefStart INTEGER DEFAULT NULL,
+                        beliefEnd INTEGER DEFAULT NULL,
+                        note TEXT NOT NULL DEFAULT '',
+                        createdAt INTEGER NOT NULL,
+                        FOREIGN KEY(scriptId) REFERENCES imaginal_scripts(id)
+                            ON UPDATE NO ACTION ON DELETE SET NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_imaginal_sessions_startedAt ON imaginal_sessions(startedAt)")
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS planned_sessions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        ladderItemId INTEGER DEFAULT NULL,
+                        scheduledAt INTEGER NOT NULL,
+                        status TEXT NOT NULL DEFAULT 'PLANNED',
+                        reminderLeadMinutes INTEGER DEFAULT NULL,
+                        ifThenPlan TEXT NOT NULL DEFAULT '',
+                        createdAt INTEGER NOT NULL,
+                        FOREIGN KEY(ladderItemId) REFERENCES ladder_items(id)
+                            ON UPDATE NO ACTION ON DELETE SET NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_planned_sessions_scheduledAt ON planned_sessions(scheduledAt)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_planned_sessions_ladderItemId ON planned_sessions(ladderItemId)")
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS checkins (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        date TEXT NOT NULL,
+                        instrumentId TEXT NOT NULL,
+                        answersJson TEXT NOT NULL DEFAULT '{}',
+                        totalScore INTEGER DEFAULT NULL,
+                        note TEXT NOT NULL DEFAULT '',
+                        createdAt INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_checkins_date ON checkins(date)")
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS active_session_state (
+                        id INTEGER NOT NULL DEFAULT 1,
+                        sessionType TEXT NOT NULL,
+                        stateJson TEXT NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        PRIMARY KEY(id)
+                    )
+                """.trimIndent())
+            }
+        }
+
         fun getDatabase(context: Context, scope: CoroutineScope): SteadyDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -90,7 +240,7 @@ abstract class SteadyDatabase : RoomDatabase() {
                     SteadyDatabase::class.java,
                     "steady_database"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .addCallback(SteadyDatabaseCallback(scope))
                     .build()
                 INSTANCE = instance

@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: steady-android-${{ github.ref }}
@@ -31,6 +31,9 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # The legacy "tools" SDK package was removed; install platform-tools explicitly.
+          packages: "platform-tools"
 
       - name: Install Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -40,14 +43,38 @@ jobs:
       - name: Install Android platform and build tools
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
+      - name: Compile Android instrumentation tests
+        run: gradle :app:compileDebugAndroidTestKotlin --stacktrace
+
       - name: Run unit tests
         run: gradle :app:testDebugUnitTest --stacktrace
 
       - name: Run lint
         run: gradle :app:lintDebug --stacktrace
 
+      - name: Generate temporary debug keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore debug.keystore \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -dname "CN=Android Debug,O=Android,C=US" \
+            -keyalg RSA -keysize 2048 -validity 10000
+
       - name: Assemble debug APK
         run: gradle :app:assembleDebug --stacktrace
+
+      - name: Commit generated Room schemas on the feature branch
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/feat/phase-0-stabilize'
+        run: |
+          git add app/schemas/com.example.data.local.SteadyDatabase/*.json
+          if ! git diff --cached --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "test: update generated Room schemas [skip ci]"
+            git push
+          fi
 
       - name: Upload generated Room schema
         if: always()

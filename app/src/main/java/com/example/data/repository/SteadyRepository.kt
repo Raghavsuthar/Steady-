@@ -3,6 +3,7 @@ package com.example.data.repository
 import com.example.data.local.SteadyDao
 import com.example.data.local.populateSamplePracticeData
 import com.example.data.model.ErpSession
+import com.example.data.model.GoalPracticeLog
 import com.example.data.model.ImaginalScript
 import com.example.data.model.LadderItem
 import com.example.data.model.PersonalGoal
@@ -11,6 +12,8 @@ import com.example.data.model.RitualLog
 import com.example.data.model.SettingsEntity
 import com.example.data.model.StruggleEvent
 import kotlinx.coroutines.flow.Flow
+import java.util.Calendar
+import java.util.Locale
 
 class SteadyRepository(private val dao: SteadyDao) {
     val settingsFlow: Flow<SettingsEntity?> = dao.getSettingsFlow()
@@ -60,7 +63,7 @@ class SteadyRepository(private val dao: SteadyDao) {
 
                 // If linked to personal goal, increment goal practice count
                 existing.personalGoalId?.let { goalId ->
-                    incrementGoalPractice(goalId)
+                    incrementGoalPractice(goalId, session.timestamp)
                 }
             }
         }
@@ -72,16 +75,27 @@ class SteadyRepository(private val dao: SteadyDao) {
 
     suspend fun deleteGoal(goal: PersonalGoal) = dao.deleteGoal(goal)
 
-    suspend fun incrementGoalPractice(goalId: Long) {
-        val goal = dao.getGoalById(goalId)
-        if (goal != null) {
-            dao.updateGoal(
-                goal.copy(
-                    daysPracticedCount = goal.daysPracticedCount + 1,
-                    lastPracticedDate = System.currentTimeMillis()
-                )
+    suspend fun incrementGoalPractice(goalId: Long, timestamp: Long = System.currentTimeMillis()) {
+        val goal = dao.getGoalById(goalId) ?: return
+        val calendar = Calendar.getInstance().apply { timeInMillis = timestamp }
+        val localDate = String.format(
+            Locale.US,
+            "%04d-%02d-%02d",
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH) + 1,
+            calendar.get(Calendar.DAY_OF_MONTH)
+        )
+
+        // The composite primary key makes repeated practice on one day idempotent.
+        dao.insertGoalPracticeLog(
+            GoalPracticeLog(goalId = goalId, localDate = localDate, createdAt = timestamp)
+        )
+        dao.updateGoal(
+            goal.copy(
+                daysPracticedCount = dao.getGoalPracticeDayCount(goalId),
+                lastPracticedDate = timestamp
             )
-        }
+        )
     }
 
     suspend fun updateReminderSchedule(schedule: ReminderSchedule) {

@@ -7,6 +7,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.example.data.model.ErpSession
+import com.example.data.model.GoalPracticeLog
 import com.example.data.model.ImaginalScript
 import com.example.data.model.LadderItem
 import com.example.data.model.PersonalGoal
@@ -121,6 +122,13 @@ interface SteadyDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveReminderSchedule(schedule: ReminderSchedule)
+
+    // Goal practice history: one row per goal per local calendar day.
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertGoalPracticeLog(log: GoalPracticeLog): Long
+
+    @Query("SELECT COUNT(*) FROM goal_practice_log WHERE goalId = :goalId")
+    suspend fun getGoalPracticeDayCount(goalId: Long): Int
 
     // Reset data
     @Query("DELETE FROM ladder_items")
