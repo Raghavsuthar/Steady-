@@ -5,29 +5,30 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 
 private val SteadyLightColorScheme = lightColorScheme(
-    primary = SagePrimary,
+    primary = SagePrimaryDeep,
     onPrimary = PureWhite,
-    primaryContainer = SandAccent,
+    primaryContainer = SageLight,
     onPrimaryContainer = SagePrimaryDeep,
-    secondary = DustyBlue,
+    secondary = DustyBlueDark,
     onSecondary = PureWhite,
-    secondaryContainer = SandLight,
+    secondaryContainer = BlueSurface,
     onSecondaryContainer = CharcoalText,
     tertiary = WarmAmber,
-    onTertiary = PureWhite,
+    onTertiary = CharcoalText,
     background = CreamBackground,
     onBackground = CharcoalText,
     surface = PureWhite,
     onSurface = CharcoalText,
     surfaceVariant = SandLight,
     onSurfaceVariant = MutedText,
-    outline = SandAccent
+    outline = Color(0xFFD8DCE6)
 )
 
 private val SteadyDarkColorScheme = darkColorScheme(
-    primary = SageDark,
+    primary = SageLight,
     onPrimary = DarkBackground,
     primaryContainer = DarkSurfaceVariant,
     onPrimaryContainer = SageLight,
@@ -43,7 +44,7 @@ private val SteadyDarkColorScheme = darkColorScheme(
     onSurface = LightText,
     surfaceVariant = DarkSurfaceVariant,
     onSurfaceVariant = MutedLightText,
-    outline = DarkSurfaceVariant
+    outline = Color(0xFF425252)
 )
 
 @Composable
@@ -52,12 +53,7 @@ fun SteadyTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) SteadyDarkColorScheme else SteadyLightColorScheme
-
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = SteadyTypography,
-        content = content
-    )
+    MaterialTheme(colorScheme = colorScheme, typography = SteadyTypography, content = content)
 }
 
 // Retain alias for any template references
