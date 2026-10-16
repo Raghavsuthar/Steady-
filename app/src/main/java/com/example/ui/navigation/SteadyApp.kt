@@ -94,6 +94,7 @@ import com.example.ui.theme.SagePrimary
 import com.example.ui.theme.SagePrimaryDeep
 import com.example.ui.theme.SandAccent
 import com.example.ui.theme.SteadyTheme
+import com.example.service.countDistinctPracticeDaysInCurrentMonth
 import com.example.ui.theme.WarmAmber
 import com.example.ui.viewmodel.ActiveScreen
 import com.example.ui.viewmodel.SteadyTab
@@ -418,7 +419,9 @@ fun SteadyApp(
                         onAsk = { prompt, type ->
                             viewModel.askAiCoach(prompt, type)
                         },
-                        onUseResult = {
+                        onUseResult = { suggestion ->
+                            // Carry the suggestion back into the editable prompt on next open; do not save it automatically.
+                            aiCoachTargetText = suggestion
                             viewModel.clearAiCoachResult()
                             showAiCoachDialog = false
                         },
@@ -572,18 +575,8 @@ private fun SteadyNavigationBar(
     }
 }
 
-private fun calculateDaysPracticedThisMonth(sessions: List<com.example.data.model.ErpSession>): Int {
-    if (sessions.isEmpty()) return 3 // Realistic default showing gentle progress
-    val now = System.currentTimeMillis()
-    val monthAgo = now - 30 * 86_400_000L
-    val recent = sessions.filter { it.timestamp >= monthAgo }
-    val uniqueDays = recent.map {
-        val cal = java.util.Calendar.getInstance()
-        cal.timeInMillis = it.timestamp
-        cal.get(java.util.Calendar.DAY_OF_YEAR)
-    }.distinct().size
-    return uniqueDays.coerceAtLeast(1)
-}
+private fun calculateDaysPracticedThisMonth(sessions: List<com.example.data.model.ErpSession>): Int =
+    countDistinctPracticeDaysInCurrentMonth(sessions.map { it.timestamp })
 
 private fun exportAllDataAsJson(
     context: android.content.Context,
