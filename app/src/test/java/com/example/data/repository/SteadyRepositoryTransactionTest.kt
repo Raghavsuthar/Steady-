@@ -33,7 +33,7 @@ class SteadyRepositoryTransactionTest {
             ApplicationProvider.getApplicationContext<Context>(),
             SteadyDatabase::class.java
         ).allowMainThreadQueries().build()
-        repository = SteadyRepository(database.steadyDao())
+        repository = SteadyRepository(database)
     }
 
     @After
