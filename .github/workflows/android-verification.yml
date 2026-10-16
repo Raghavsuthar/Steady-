@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - "feat/phase-0-stabilize"
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -45,3 +48,18 @@ jobs:
 
       - name: Assemble debug APK
         run: gradle :app:assembleDebug --stacktrace
+
+      - name: Upload generated Room schema
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: steady-room-schema
+          path: app/schemas/
+          if-no-files-found: warn
+
+      - name: Upload debug APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: steady-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
