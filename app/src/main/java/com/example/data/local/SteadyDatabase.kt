@@ -18,6 +18,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+internal const val STEADY_DATABASE_VERSION = 2
+
 @Database(
     entities = [
         SettingsEntity::class,
@@ -29,7 +31,7 @@ import kotlinx.coroutines.launch
         PersonalGoal::class,
         ReminderSchedule::class
     ],
-    version = 2,
+    version = STEADY_DATABASE_VERSION,
     exportSchema = true
 )
 abstract class SteadyDatabase : RoomDatabase() {
