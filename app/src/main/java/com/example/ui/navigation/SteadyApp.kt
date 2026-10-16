@@ -76,6 +76,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.LadderItem
 import com.example.ui.screens.AiCoachDialog
 import com.example.ui.screens.ClinicianReportScreen
+import com.example.ui.screens.DistractionToolsScreen
 import com.example.ui.screens.ErpActiveSessionScreen
 import com.example.ui.screens.HelpSafetyScreen
 import com.example.ui.screens.HomeScreen
@@ -257,6 +258,7 @@ fun SteadyApp(
                                     onLogRitualClick = { showQuickLogRitualSheet = true },
                                     onOpenLadderClick = { viewModel.selectTab(SteadyTab.PRACTICE) },
                                     onOpenLearnClick = { viewModel.selectTab(SteadyTab.LEARN) },
+                                    onOpenResetTools = { viewModel.navigateTo(ActiveScreen.DISTRACTION_TOOLS) },
                                     onOpenGoalsClick = { viewModel.selectTab(SteadyTab.TRACK) },
                                     onOpenHelpClick = { viewModel.navigateTo(ActiveScreen.HELP_SAFETY) }
                                 )
@@ -352,6 +354,11 @@ fun SteadyApp(
                     }
                     ActiveScreen.HELP_SAFETY -> {
                         HelpSafetyScreen(
+                            onBack = { viewModel.handleBack() }
+                        )
+                    }
+                    ActiveScreen.DISTRACTION_TOOLS -> {
+                        DistractionToolsScreen(
                             onBack = { viewModel.handleBack() }
                         )
                     }
