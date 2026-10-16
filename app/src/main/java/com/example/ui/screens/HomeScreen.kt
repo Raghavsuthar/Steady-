@@ -104,6 +104,7 @@ fun HomeScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp)
