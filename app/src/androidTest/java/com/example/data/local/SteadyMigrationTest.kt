@@ -1,7 +1,6 @@
 package com.example.data.local
 
 import android.content.Context
-import android.database.Cursor
 import androidx.room.Room
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
