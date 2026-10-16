@@ -82,6 +82,7 @@ fun HomeScreen(
     onLogRitualClick: () -> Unit,
     onOpenLadderClick: () -> Unit,
     onOpenLearnClick: () -> Unit,
+    onOpenResetTools: () -> Unit,
     onOpenGoalsClick: () -> Unit,
     onOpenHelpClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -403,6 +404,33 @@ fun HomeScreen(
                     ) {
                         Icon(imageVector = Icons.Default.Close, contentDescription = "Dismiss", tint = MutedText, modifier = Modifier.size(16.dp))
                     }
+                }
+            }
+        }
+
+        // A low-pressure attention-shift option for moments of anxiety.
+        SteadyCard(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = onOpenResetTools,
+            testTag = "home_reset_refocus_card"
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(18.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier.size(48.dp).clip(CircleShape).background(DustyBlue.copy(alpha = 0.18f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Spa, contentDescription = null, tint = SagePrimaryDeep, modifier = Modifier.size(25.dp))
+                }
+                Spacer(modifier = Modifier.width(14.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Reset & Refocus", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Text("Short grounding games and attention-shift activities", style = MaterialTheme.typography.bodySmall, color = MutedText)
+                    Spacer(modifier = Modifier.height(5.dp))
+                    Text("Open activities  →", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = SagePrimaryDeep)
                 }
             }
         }

@@ -45,6 +45,7 @@ enum class ActiveScreen {
     IMAGINAL_SESSION,
     CLINICIAN_SUMMARY,
     HELP_SAFETY,
+    DISTRACTION_TOOLS,
     SETTINGS
 }
 
