@@ -30,7 +30,7 @@ import kotlinx.coroutines.launch
         ReminderSchedule::class
     ],
     version = 2,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class SteadyDatabase : RoomDatabase() {
     abstract fun steadyDao(): SteadyDao
