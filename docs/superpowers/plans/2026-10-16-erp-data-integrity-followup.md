@@ -1,0 +1,123 @@
+# ERP Data-Integrity Follow-up Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Make ERP session recording atomic, keep distinct goal practice-day counts idempotent, and preserve the incomplete state of early-ended sessions.
+
+**Architecture:** Keep the existing Kotlin/Compose, Room, repository, and ViewModel boundaries. Wrap the repository's session insert and linked ladder/goal updates in one Room transaction, using persisted goal/date rows as the source of truth. Add focused regression tests before changing production code.
+
+**Tech Stack:** Kotlin, Room 2.7, coroutines, JUnit, existing Android unit/instrumentation test setup.
+
+**Spec:** `docs/superpowers/specs/2026-10-16-erp-data-integrity-design.md`
+
+## Global Constraints
+
+- Preserve existing user data; do not add destructive migrations.
+- Do not change the Room version or migration chain unless implementation proves it necessary and the migration is separately tested.
+- ERP progress means willingness, response prevention, and learning; anxiety does not need to fall for a session to be useful.
+- Do not add reassurance, shame, streak pressure, coercive gamification, or compulsory calming techniques.
+- Do not put real patient information, credentials, API keys, signing secrets, or private identifiers in source, fixtures, logs, or screenshots.
+- Preserve `signingConfigs`, `signingConfig` assignments, Secrets plugin configuration, and `applicationId = "com.aistudio.steady.wknzpx"` in `app/build.gradle.kts`.
+- Never claim a command passed unless its actual output was inspected.
+- Work on a new feature branch based on merged `main`; do not push to `main`, merge a PR, or force-update a branch.
+
+## Review Focus
+
+- Failure after inserting an ERP session but before updating linked progress must roll back all writes.
+- A goal practice log duplicate for the same local date must not inflate the distinct-day count.
+- A session on a different local calendar date must count as a new distinct practice day.
+- A missing/deleted ladder item or goal must not create phantom records or crash an otherwise valid unlinked session.
+- Early-ended sessions must remain in history with `wasCompleted = false`, and must not be treated as completed.
+- Existing v1→v2→v3 migration must preserve legacy settings, session history, and reminder data.
+
+---
+
+### Task 1: Add Room-backed repository regression tests
+
+**Files:**
+- Create: `app/src/test/java/com/example/data/repository/SteadyRepositoryTransactionTest.kt`
+- Inspect: `app/src/main/java/com/example/data/local/SteadyDatabase.kt`
+- Inspect: `app/src/main/java/com/example/data/local/SteadyDao.kt`
+- Inspect: `app/src/main/java/com/example/data/model/Models.kt`
+
+**Interfaces:**
+- Tests use an in-memory Room `SteadyDatabase`, its `steadyDao()`, and `SteadyRepository`.
+- Reuse the project's existing test dependencies and conventions; do not add a new test framework without need.
+
+- [ ] **Step 1: Write test for successful linked session recording.** Assert that a linked session is stored, the ladder item's session count/status and last SUDS follow existing rules, and the associated goal has one practice log for that date.
+- [ ] **Step 2: Write test for duplicate same-day practice.** Record two sessions linked to the same goal with timestamps on the same local calendar date; assert exactly one goal practice-log row and a distinct-day count of 1.
+- [ ] **Step 3: Write test for next-day practice.** Record a session on a second local calendar date; assert the distinct-day count becomes 2.
+- [ ] **Step 4: Write test for early-ended session preservation.** Record an `ErpSession(wasCompleted = false)`; assert it remains false in stored history and is not rewritten as completed.
+- [ ] **Step 5: Run the focused test before implementation.** Run: `./gradlew testDebugUnitTest --tests com.example.data.repository.SteadyRepositoryTransactionTest`. Expected: new transaction-related test coverage fails where it demonstrates current gaps; if the test infrastructure or command cannot run, record the exact blocker rather than guessing.
+- [ ] **Step 6: Commit tests.** Commit message: `test: cover ERP session persistence integrity`.
+
+### Task 2: Make session and progress writes atomic
+
+**Files:**
+- Modify: `app/src/main/java/com/example/data/repository/SteadyRepository.kt`
+- Modify: `app/src/main/java/com/example/ui/viewmodel/SteadyViewModel.kt` (repository construction only, if required)
+- Modify: `app/src/test/java/com/example/data/repository/SteadyRepositoryTransactionTest.kt`
+
+**Interfaces:**
+- Keep public method signature: `suspend fun recordSession(session: ErpSession)`.
+- Preferred implementation: inject `SteadyDatabase` into `SteadyRepository` and use `database.withTransaction { ... }`; keep DAO access through the database's existing `steadyDao()`. Update repository construction in the ViewModel and tests accordingly.
+- Do not change the existing ladder mastery rule or create missing ladder/goal records.
+
+- [ ] **Step 1: Add a rollback regression test.** Use a test-only failing DAO/database strategy supported by the current test stack to trigger an exception after session insertion but before the linked progress updates finish. Assert the ERP session, ladder progress, and goal practice log/count all remain unchanged. If a reliable failure injection cannot be built with current Room test APIs, use a narrowly scoped injectable transaction operation or test seam and document why.
+- [ ] **Step 2: Run the rollback test and inspect its failure.** Use the focused Gradle test command from Task 1. Expected: current implementation leaves partial data or cannot satisfy the rollback assertion.
+- [ ] **Step 3: Implement the transaction.** Move session insert, linked ladder update, and goal practice recording/count update into one `database.withTransaction` block. Let exceptions propagate so callers cannot report success after a failed transaction.
+- [ ] **Step 4: Run the rollback and success tests.** Expected: all focused tests pass; rollback leaves no partial writes.
+- [ ] **Step 5: Commit atomic recording.** Commit message: `fix: record ERP session progress atomically`.
+
+### Task 3: Make goal practice-day counting derive from persisted distinct rows
+
+**Files:**
+- Modify: `app/src/main/java/com/example/data/repository/SteadyRepository.kt`
+- Inspect/modify only if required: `app/src/main/java/com/example/data/local/SteadyDao.kt`
+- Modify: `app/src/test/java/com/example/data/repository/SteadyRepositoryTransactionTest.kt`
+
+**Interfaces:**
+- Preserve `suspend fun incrementGoalPractice(goalId: Long, timestamp: Long = System.currentTimeMillis())`.
+- Preserve the composite uniqueness constraint for `(goalId, localDate)` and the existing `insertGoalPracticeLog` conflict-ignore behavior.
+- Keep current local-calendar-day interpretation; avoid unrelated timezone behavior changes.
+
+- [ ] **Step 1: Assert duplicate log insertion is idempotent.** Verify the insert conflict does not increase the persisted distinct-day count and the goal's `daysPracticedCount` equals `getGoalPracticeDayCount(goalId)`.
+- [ ] **Step 2: Run the focused test.** Expected: fail if count is incremented from a stale in-memory value rather than derived from persisted distinct rows.
+- [ ] **Step 3: Implement minimal count update.** After insert-ignore, query the authoritative persisted count and write that value to the goal. Keep the goal lookup null-safe and perform the work inside the session transaction when called by `recordSession`.
+- [ ] **Step 4: Run same-day and next-day tests.** Expected: same date remains 1; second date becomes 2; all updates roll back together on failure.
+- [ ] **Step 5: Commit the count fix.** Commit message: `fix: keep distinct goal practice days idempotent`.
+
+### Task 4: Verify early-end and migration preservation behavior
+
+**Files:**
+- Inspect: `app/src/main/java/com/example/ui/viewmodel/SteadyViewModel.kt`
+- Inspect: `app/src/main/java/com/example/service/PhaseZeroIntegrity.kt` or the current source file containing `isErpSessionCompleted`
+- Inspect/modify only if needed: `app/src/test/java/com/example/data/local/RoomV3MigrationContractTest.kt`
+- Inspect/modify only if needed: `app/src/androidTest/java/com/example/data/local/SteadyMigrationTest.kt`
+- Modify: `app/src/test/java/com/example/data/repository/SteadyRepositoryTransactionTest.kt` if a focused regression is missing.
+
+- [ ] **Step 1: Trace early-end call path.** Verify the UI's end-early callback persists `wasCompleted = false` and does not call the completion-only path. Add a targeted test if the existing behavior is not pinned by a test.
+- [ ] **Step 2: Run early-end test.** Expected: an early-ended record remains incomplete; normal completion still uses the existing helper/rule.
+- [ ] **Step 3: Inspect migration fixture assertions.** Confirm the existing chained migration test seeds and verifies a legacy reminder row and preserves settings/session fields. Add only missing assertions; do not change the migration schema solely to satisfy tests.
+- [ ] **Step 4: Run migration contract test.** Run: `./gradlew testDebugUnitTest --tests com.example.data.local.RoomV3MigrationContractTest`. Expected: PASS.
+- [ ] **Step 5: Run instrumentation migration test if a suitable Android device/emulator is available.** Run: `./gradlew connectedDebugAndroidTest --tests com.example.data.local.SteadyMigrationTest`. Expected: PASS. If no device/emulator is available, mark NOT RUN and explain.
+- [ ] **Step 6: Commit any necessary focused test correction.** Commit message: `test: verify ERP early-end and migration preservation`.
+
+### Task 5: Full verification and branch handoff
+
+**Files:**
+- No additional product files unless a failure requires a focused correction.
+- Review all commits and diffs on the feature branch.
+
+- [ ] **Step 1: Run unit tests.** Run: `./gradlew testDebugUnitTest`. Expected: PASS.
+- [ ] **Step 2: Run lint.** Run: `./gradlew lintDebug`. Expected: PASS with no new blocking issues.
+- [ ] **Step 3: Assemble debug APK.** Run: `./gradlew assembleDebug`. Expected: PASS.
+- [ ] **Step 4: Inspect Room schema/migration diff.** Expected: no schema change unless proven necessary; no destructive migration or lost legacy rows.
+- [ ] **Step 5: Review protected configuration.** Verify the signing configuration, Secrets plugin configuration, and application ID are unchanged.
+- [ ] **Step 6: Inspect CI evidence.** If local Android tooling is unavailable, inspect the exact GitHub Actions run and job logs for this branch/commit. Report each check individually as PASS, FAIL, NOT RUN, or UNVERIFIED; never infer a test passed from workflow existence alone.
+- [ ] **Step 7: Prepare PR, do not merge.** Open/update a PR from the feature branch to `main`, summarize behavior and evidence, and list any unverified checks. Leave merge decision to the user.
+
+## Execution Notes
+
+- The current repository has no Gradle wrapper confirmed in the root tree; verify actual available build tooling before attempting commands. If `./gradlew` is absent, do not fabricate results. Use CI only if it can run the required checks, and explicitly state any check that was not run.
+- Do not combine the later onboarding/crisis-language review or active-session timer recovery into this persistence PR. Those are separate workstreams after this one is reviewed and merged.
