@@ -15,7 +15,9 @@ import com.example.data.model.StruggleEvent
 import com.example.data.model.SudsCheckIn
 import com.example.data.repository.SteadyRepository
 import com.example.service.GeminiService
+import com.example.service.HighDistressAlertLatch
 import com.example.service.SafetyChecker
+import com.example.service.isErpSessionCompleted
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
@@ -129,6 +131,7 @@ class SteadyViewModel(application: Application) : AndroidViewModel(application) 
     // Safety Trigger Overlay Alert
     private val _safetyAlertTriggered = MutableStateFlow(false)
     val safetyAlertTriggered: StateFlow<Boolean> = _safetyAlertTriggered.asStateFlow()
+    private val highDistressAlertLatch = HighDistressAlertLatch()
 
     // Struggle Flow State
     private val _struggleState = MutableStateFlow(StruggleFlowState())
@@ -546,6 +549,7 @@ class SteadyViewModel(application: Application) : AndroidViewModel(application) 
     // ------------------------------------------------------------------------
     fun startErpSession(ladderItem: LadderItem) {
         erpTimerJob?.cancel()
+        highDistressAlertLatch.reset()
         _erpState.value = ErpActiveState(
             ladderItem = ladderItem,
             step = 1,
@@ -597,8 +601,8 @@ class SteadyViewModel(application: Application) : AndroidViewModel(application) 
                 val latestSuds = cur.checkIns.lastOrNull()?.suds ?: cur.startSuds
                 val newHighSudsSec = if (latestSuds >= 90) cur.highSudsSeconds + 1 else 0
 
-                // Clinical safety check: SUDS >= 90 for 5+ min
-                if (newHighSudsSec >= 300) {
+                // One safety prompt per sustained high-distress episode; dismissal does not relaunch it each tick.
+                if (highDistressAlertLatch.shouldTrigger(latestSuds, newHighSudsSec)) {
                     _safetyAlertTriggered.value = true
                 }
 
@@ -688,7 +692,7 @@ class SteadyViewModel(application: Application) : AndroidViewModel(application) 
             timestamp = System.currentTimeMillis(),
             compulsionResisted = compulsionResisted,
             alternativeAction = alternativeAction,
-            wasCompleted = true
+            wasCompleted = isErpSessionCompleted(cur.remainingSeconds)
         )
 
         viewModelScope.launch {
