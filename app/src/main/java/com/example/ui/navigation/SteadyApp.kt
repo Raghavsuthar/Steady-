@@ -420,10 +420,9 @@ fun SteadyApp(
                             viewModel.askAiCoach(prompt, type)
                         },
                         onUseResult = { suggestion ->
-                            // Carry the suggestion back into the editable prompt on next open; do not save it automatically.
+                            // AiCoachDialog copies this into its editable prompt. Keep the dialog open and never auto-save.
                             aiCoachTargetText = suggestion
                             viewModel.clearAiCoachResult()
-                            showAiCoachDialog = false
                         },
                         onDismiss = {
                             viewModel.clearAiCoachResult()
