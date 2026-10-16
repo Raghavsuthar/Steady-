@@ -43,6 +43,9 @@ jobs:
       - name: Install Android platform and build tools
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
+      - name: Compile Android instrumentation tests
+        run: gradle :app:compileDebugAndroidTestKotlin --stacktrace
+
       - name: Run unit tests
         run: gradle :app:testDebugUnitTest --stacktrace
 
