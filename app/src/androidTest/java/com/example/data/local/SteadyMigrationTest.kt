@@ -92,8 +92,11 @@ class SteadyMigrationTest {
                          checkInsJson,endSuds,predictionBeliefEnd,learnedNote,durationMinutes,timestamp)
                         VALUES (7,4,'Legacy step','IN_VIVO','legacy prediction',70,80,
                          'legacy-checkin-format:0:80,3:75',45,50,'Existing learning note',12,1700000000000)""")
-                    // Run the existing v1 -> v2 migration against this real SQLite database.
+                    // Apply v1 -> v2, then seed a legacy reminder row for the v2 -> v3 conversion.
                     SteadyDatabase.MIGRATION_1_2.migrate(db)
+                    db.execSQL("""INSERT INTO reminder_schedules
+                        (id,isEnabled,timeHour,timeMinute,weekdaysOnly,includeWeekends,lastNotificationTimestamp)
+                        VALUES (1,1,20,0,1,0,0)""")
                     db.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY, identity_hash TEXT)")
                     db.execSQL("INSERT OR REPLACE INTO room_master_table (id, identity_hash) VALUES (42, 'ae7df4e7e50fa419fe05863831991808')")
                 }
