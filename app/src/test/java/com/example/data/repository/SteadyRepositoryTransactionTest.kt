@@ -134,6 +134,40 @@ class SteadyRepositoryTransactionTest {
         assertEquals(0, database.steadyDao().getGoalById(goalId)!!.daysPracticedCount)
     }
 
+
+    @Test
+    fun sessionWithMissingLadderItemIsSavedWithoutCreatingPhantomProgress() = runBlocking {
+        repository.recordSession(
+            ErpSession(
+                ladderItemId = 999L,
+                ladderItemTitle = "Removed ladder item",
+                timestamp = localTimestamp(2026, Calendar.OCTOBER, 16)
+            )
+        )
+
+        assertEquals(1, database.steadyDao().getAllSessions().first().size)
+        assertEquals(0, database.steadyDao().getLadderItemsBySudsAsc().first().size)
+        assertEquals(0, database.steadyDao().getAllGoals().first().size)
+    }
+
+    @Test
+    fun ladderLinkedToMissingGoalRecordsSessionWithoutCreatingPhantomGoal() = runBlocking {
+        val ladderId = database.steadyDao().insertLadderItem(
+            LadderItem(
+                title = "Unlinked practice",
+                category = "Other",
+                baselineSuds = 40,
+                personalGoalId = 999L
+            )
+        )
+
+        repository.recordSession(session(ladderId, localTimestamp(2026, Calendar.OCTOBER, 16)))
+
+        assertEquals(1, database.steadyDao().getAllSessions().first().size)
+        assertEquals(1, database.steadyDao().getLadderItemById(ladderId)!!.sessionCount)
+        assertEquals(0, database.steadyDao().getAllGoals().first().size)
+    }
+
     private fun session(ladderId: Long, timestamp: Long, endSuds: Int = 30) = ErpSession(
         ladderItemId = ladderId,
         ladderItemTitle = "Touch a door handle",
