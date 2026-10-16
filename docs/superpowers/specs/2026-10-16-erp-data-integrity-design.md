@@ -1,7 +1,7 @@
 # Steady ERP Data-Integrity Follow-up — Design
 
 **Date:** 2026-10-16  
-**Status:** Proposed for user review  
+**Status:** Approved by user on 2026-10-16  
 **Base:** merged `main` after PR #4  
 **Scope:** Focused follow-up to finish the highest-priority Phase 0 persistence guarantees. This document is design only; no application behavior changes are included in this commit.
 
