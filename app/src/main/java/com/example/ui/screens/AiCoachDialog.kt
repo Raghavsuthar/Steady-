@@ -144,7 +144,10 @@ fun AiCoachDialog(
             if (result != null) {
                 SteadyPrimaryButton(
                     text = "Apply Suggestion",
-                    onClick = { onUseResult(result) },
+                    onClick = {
+                        userPrompt = result
+                        onUseResult(result)
+                    },
                     modifier = Modifier.height(44.dp),
                     testTag = "ai_coach_apply_button"
                 )
