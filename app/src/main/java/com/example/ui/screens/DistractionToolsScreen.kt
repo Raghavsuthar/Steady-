@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -17,6 +19,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -28,7 +34,7 @@ import com.example.ui.theme.SagePrimary
 import com.example.ui.theme.SagePrimaryDeep
 import com.example.ui.theme.SandAccent
 
-private enum class ResetTool { GROUNDING, COLOR_HUNT, CATEGORY_SPRINT }
+private enum class ResetTool { GROUNDING, COLOR_HUNT, CATEGORY_SPRINT, BUBBLE_POP }
 
 @Composable
 fun DistractionToolsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
@@ -37,6 +43,7 @@ fun DistractionToolsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     var colorIndex by remember { mutableIntStateOf(0) }
     var foundObjects by remember { mutableIntStateOf(0) }
     var categoryIndex by remember { mutableIntStateOf(0) }
+    var bubblePopState by remember { mutableStateOf(BubblePopGameState()) }
 
     val groundingSteps = listOf(
         "Notice 5 things you can see",
@@ -84,10 +91,15 @@ fun DistractionToolsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
             }
         }
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ToolChoice("Ground", selectedTool == ResetTool.GROUNDING, { selectedTool = ResetTool.GROUNDING; completedSteps.clear() }, Modifier.weight(1f))
-            ToolChoice("Color hunt", selectedTool == ResetTool.COLOR_HUNT, { selectedTool = ResetTool.COLOR_HUNT }, Modifier.weight(1f))
-            ToolChoice("Word game", selectedTool == ResetTool.CATEGORY_SPRINT, { selectedTool = ResetTool.CATEGORY_SPRINT }, Modifier.weight(1f))
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ToolChoice("Ground", selectedTool == ResetTool.GROUNDING, { selectedTool = ResetTool.GROUNDING; completedSteps.clear() }, Modifier.weight(1f))
+                ToolChoice("Color hunt", selectedTool == ResetTool.COLOR_HUNT, { selectedTool = ResetTool.COLOR_HUNT }, Modifier.weight(1f))
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ToolChoice("Word game", selectedTool == ResetTool.CATEGORY_SPRINT, { selectedTool = ResetTool.CATEGORY_SPRINT }, Modifier.weight(1f))
+                ToolChoice("Bubble Pop", selectedTool == ResetTool.BUBBLE_POP, { selectedTool = ResetTool.BUBBLE_POP }, Modifier.weight(1f))
+            }
         }
 
         when (selectedTool) {
@@ -151,6 +163,11 @@ fun DistractionToolsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     }
                 }
             }
+
+            ResetTool.BUBBLE_POP -> BubblePopGameCard(
+                state = bubblePopState,
+                onStateChange = { bubblePopState = it }
+            )
 
             ResetTool.CATEGORY_SPRINT -> SteadyCard(Modifier.fillMaxWidth(), testTag = "reset_word_game_card") {
                 Column(Modifier.fillMaxWidth().padding(22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
