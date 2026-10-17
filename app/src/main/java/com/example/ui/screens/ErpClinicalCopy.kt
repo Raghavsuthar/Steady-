@@ -17,7 +17,7 @@ internal object ErpClinicalCopy {
         "Notice the urge without judging yourself. Practice choosing not to do the compulsion at your own pace; distress does not need to peak or drop."
 
     const val completionSummary =
-        "You practiced facing uncertainty and choosing how to respond. Notice what you were willing to try and what you learned, whether distress rose, fell, or stayed the same."
+        "You practiced facing uncertainty and choosing how to respond. Notice your willingness to try and what you learned, whether distress rose, fell, or stayed the same."
 
     const val learningNotePlaceholder =
         "What did you notice about your prediction, your choices, or your willingness to experience uncertainty—even if distress stayed high?"
