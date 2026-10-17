@@ -167,7 +167,7 @@ fun ErpActiveSessionScreen(
             if (showEndEarlyConfirm) {
                 SteadyConfirmDialog(
                     title = "End session early?",
-                    message = "Ending early is completely okay. You stayed with the exposure for as long as you could, and that effort weakens the OCD loop.",
+                    message = ErpClinicalCopy.endEarlyMessage,
                     confirmText = "End and Reflect",
                     dismissText = "Continue Exposure",
                     onConfirm = {
@@ -235,7 +235,7 @@ private fun ErpPrepStep(
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Do the exposure. Don't do the ritual. Stay until anxiety comes down or the timer ends.",
+                        text = ErpClinicalCopy.prepInstruction,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Medium
@@ -368,7 +368,7 @@ private fun ErpActiveExposureStep(
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = "Resist the ritual. Let anxiety peak and drop.",
+                    text = ErpClinicalCopy.activeReminder,
                     style = MaterialTheme.typography.labelMedium,
                     color = SagePrimaryDeep,
                     fontWeight = FontWeight.SemiBold
@@ -508,20 +508,20 @@ private fun ErpCompletionStep(
     ) {
         Column {
             Text(
-                text = "Session Complete",
+                text = "Practice Reflection",
                 style = MaterialTheme.typography.labelLarge,
                 color = SagePrimaryDeep
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "You stayed with it.",
+                text = "You practiced facing uncertainty.",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "Anxiety rose and fell on its own without feeding the compulsion.",
+                text = ErpClinicalCopy.completionSummary,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MutedText
             )
@@ -588,7 +588,7 @@ private fun ErpCompletionStep(
             OutlinedTextField(
                 value = learnedNote,
                 onValueChange = { learnedNote = it },
-                placeholder = { Text("e.g. My anxiety peaked around minute 6, but nothing catastrophic occurred. I can survive the urge.") },
+                placeholder = { Text(ErpClinicalCopy.learningNotePlaceholder) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("erp_learned_note_input"),
