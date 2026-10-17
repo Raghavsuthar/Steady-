@@ -69,23 +69,18 @@
 - [x] **Step 4: Run the rollback and success tests.** Expected: all focused tests pass; rollback leaves no partial writes.
 - [x] **Step 5: Commit atomic recording.** Commit message: `fix: record ERP session progress atomically`.
 
-### Task 3: Make goal practice-day counting derive from persisted distinct rows
+### Task 3: Verify goal practice-day count idempotence
 
-**Files:**
-- Modify: `app/src/main/java/com/example/data/repository/SteadyRepository.kt`
-- Inspect/modify only if required: `app/src/main/java/com/example/data/local/SteadyDao.kt`
-- Modify: `app/src/test/java/com/example/data/repository/SteadyRepositoryTransactionTest.kt`
+**Files inspected/tested:**
+- `app/src/main/java/com/example/data/repository/SteadyRepository.kt`
+- `app/src/main/java/com/example/data/local/SteadyDao.kt`
+- `app/src/test/java/com/example/data/repository/SteadyRepositoryTransactionTest.kt`
 
-**Interfaces:**
-- Preserve `suspend fun incrementGoalPractice(goalId: Long, timestamp: Long = System.currentTimeMillis())`.
-- Preserve the composite uniqueness constraint for `(goalId, localDate)` and the existing `insertGoalPracticeLog` conflict-ignore behavior.
-- Keep current local-calendar-day interpretation; avoid unrelated timezone behavior changes.
-
-- [x] **Step 1: Assert duplicate log insertion is idempotent.** Verify the insert conflict does not increase the persisted distinct-day count and the goal's `daysPracticedCount` equals `getGoalPracticeDayCount(goalId)`.
-- [x] **Step 2: Run the focused test.** Expected: fail if count is incremented from a stale in-memory value rather than derived from persisted distinct rows.
-- [x] **Step 3: Implement minimal count update.** After insert-ignore, query the authoritative persisted count and write that value to the goal. Keep the goal lookup null-safe and perform the work inside the session transaction when called by `recordSession`.
-- [x] **Step 4: Run same-day and next-day tests.** Expected: same date remains 1; second date becomes 2; all updates roll back together on failure.
-- [x] **Step 5: Commit the count fix.** Commit message: `fix: keep distinct goal practice days idempotent`.
+- [x] **Step 1: Assert duplicate log insertion is idempotent.** Same-day repository test verifies two sessions create two session rows but only one goal practice day.
+- [x] **Step 2: Run focused regression coverage.** The initial CI run showed the intended rollback test failing before the transaction change; the same-day and next-day tests also ran in that suite.
+- [x] **Step 3: Inspect existing count implementation.** The repository already inserts with conflict-ignore and sets `daysPracticedCount` from `getGoalPracticeDayCount(goalId)`. No separate count-algorithm change was necessary; the implementation was retained and now runs within the transaction.
+- [x] **Step 4: Verify same-day and next-day behavior.** Passed in GitHub Actions run `38918097142`.
+- [x] **Step 5: Record the scope decision.** No separate production change or separate commit was needed for count calculation because it already matched the approved design.
 
 ### Task 4: Verify early-end and migration preservation behavior
 
