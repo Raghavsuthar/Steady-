@@ -30,7 +30,7 @@ class ErpClinicalCopyTest {
         val copy = ErpClinicalCopy.completionSummary
 
         assertTrue(copy.contains("willingness"))
-        assertTrue(copy.contains("learning"))
+        assertTrue(copy.contains("learned"))
         assertFalse(copy.contains("Anxiety rose and fell on its own"))
     }
 
