@@ -207,6 +207,126 @@ fun DistractionToolsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
 }
 
 @Composable
+private fun BubblePopGameCard(
+    state: BubblePopGameState,
+    onStateChange: (BubblePopGameState) -> Unit
+) {
+    SteadyCard(
+        modifier = Modifier.fillMaxWidth(),
+        testTag = "bubble_pop_game_card"
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                "Bubble Pop",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "Tap the bubble as it appears in different places. Complete ten taps at your own pace; missed taps have no penalty.",
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                color = MutedText
+            )
+            Text(
+                "${state.score} of ${BubblePopGameState.ROUND_LENGTH} bubbles",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = SagePrimaryDeep
+            )
+
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(270.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .pointerInput(state.score, state.isComplete) {
+                        detectTapGestures { tap ->
+                            onStateChange(
+                                state.tap(
+                                    tap.x,
+                                    tap.y,
+                                    size.width.toFloat(),
+                                    size.height.toFloat()
+                                )
+                            )
+                        }
+                    }
+                    .testTag("bubble_pop_play_area")
+            ) {
+                if (!state.isComplete) {
+                    val target = state.currentTarget(size.width, size.height)
+                    val bubbleColors = listOf(SagePrimary, DustyBlue, SandAccent)
+                    val bubbleColor = bubbleColors[state.score % bubbleColors.size]
+                    drawCircle(
+                        color = bubbleColor,
+                        radius = target.radius,
+                        center = Offset(target.centerX, target.centerY)
+                    )
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.55f),
+                        radius = target.radius * 0.24f,
+                        center = Offset(
+                            target.centerX - target.radius * 0.28f,
+                            target.centerY - target.radius * 0.28f
+                        )
+                    )
+                }
+            }
+
+            if (state.isComplete) {
+                Text(
+                    "Round complete. You can stop here—even if an urge or discomfort is still present.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    color = SagePrimaryDeep
+                )
+                Button(
+                    onClick = { onStateChange(state.restart()) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = SagePrimaryDeep,
+                        contentColor = PureWhite
+                    ),
+                    contentPadding = PaddingValues(12.dp)
+                ) {
+                    Text("Play another round")
+                }
+            } else {
+                // Accessible alternative for users who cannot tap the canvas accurately.
+                Button(
+                    onClick = {
+                        val target = state.currentTarget(1000f, 800f)
+                        onStateChange(
+                            state.tap(target.centerX, target.centerY, 1000f, 800f)
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = SagePrimaryDeep,
+                        contentColor = PureWhite
+                    ),
+                    contentPadding = PaddingValues(12.dp)
+                ) {
+                    Text("Pop bubble")
+                }
+            }
+
+            Text(
+                "This is an optional attention break, not a test or a way you must use to cancel a thought. If you are doing planned ERP, return to your agreed plan when ready.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MutedText,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
 private fun ToolChoice(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     if (selected) {
         Button(
