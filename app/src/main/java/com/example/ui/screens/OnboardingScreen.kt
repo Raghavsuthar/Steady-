@@ -168,7 +168,7 @@ fun OnboardingScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "Exposure and Response Prevention (ERP) teaches your brain the secret: face the feeling, skip the ritual, and anxiety falls on its own.",
+                            text = ErpClinicalCopy.onboardingExplanation,
                             style = MaterialTheme.typography.bodyLarge,
                             textAlign = TextAlign.Center,
                             color = MutedText

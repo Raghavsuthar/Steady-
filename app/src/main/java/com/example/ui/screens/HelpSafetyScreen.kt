@@ -127,13 +127,14 @@ fun HelpSafetyScreen(
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "When intense spikes occur, your nervous system is in overdrive. It is completely safe to pause and connect with support.",
+                        text = ErpClinicalCopy.supportBanner,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MutedText
                     )
                 }
             }
 
+            // TODO(clinician-review): Verify current Tele-MANAS contact details before release.
             // Crisis & Helpline 1: Tele-MANAS (14416)
             SteadyCard(
                 modifier = Modifier.fillMaxWidth(),
@@ -199,7 +200,7 @@ fun HelpSafetyScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "If you or someone else is in immediate physical danger, contact emergency services right away.",
+                            text = ErpClinicalCopy.crisisGuidance,
                             style = MaterialTheme.typography.bodySmall,
                             color = MutedText
                         )
