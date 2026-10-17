@@ -101,6 +101,7 @@ fun OnboardingScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
+            // Header Progress
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -112,7 +113,10 @@ fun OnboardingScreen(
                     color = SagePrimaryDeep,
                     letterSpacing = 2.sp
                 )
-                SteadyProgressDots(totalSteps = 4, currentStep = stepIndex)
+                SteadyProgressDots(
+                    totalSteps = 4,
+                    currentStep = stepIndex
+                )
                 if (stepIndex < 3) {
                     TextButton(onClick = { stepIndex = 3 }) {
                         Text("Skip", color = MutedText, style = MaterialTheme.typography.bodyMedium)
@@ -126,6 +130,7 @@ fun OnboardingScreen(
 
             when (stepIndex) {
                 0 -> {
+                    // Slide 1: OCD is a loop
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.weight(1f, fill = false)
@@ -148,6 +153,7 @@ fun OnboardingScreen(
                     }
                 }
                 1 -> {
+                    // Slide 2: ERP breaks the loop
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.weight(1f, fill = false)
@@ -170,6 +176,7 @@ fun OnboardingScreen(
                     }
                 }
                 2 -> {
+                    // Slide 3: Steady supports therapy
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.weight(1f, fill = false)
@@ -205,6 +212,7 @@ fun OnboardingScreen(
                     }
                 }
                 3 -> {
+                    // Consent & 3 Quick Setup Questions
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -225,6 +233,7 @@ fun OnboardingScreen(
 
                         Spacer(modifier = Modifier.height(20.dp))
 
+                        // Disclaimer & Consent Checkbox
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -254,6 +263,7 @@ fun OnboardingScreen(
 
                         Spacer(modifier = Modifier.height(20.dp))
 
+                        // Question 1: Preferred Name
                         Text(
                             text = "What should we call you? (optional)",
                             style = MaterialTheme.typography.labelLarge,
@@ -277,6 +287,7 @@ fun OnboardingScreen(
 
                         Spacer(modifier = Modifier.height(20.dp))
 
+                        // Question 2: OCD Themes
                         Text(
                             text = "Main OCD themes (optional)",
                             style = MaterialTheme.typography.labelLarge,
@@ -303,6 +314,7 @@ fun OnboardingScreen(
 
                         Spacer(modifier = Modifier.height(20.dp))
 
+                        // Question 3: Daily reminder time
                         Text(
                             text = "Daily gentle reminder time (optional)",
                             style = MaterialTheme.typography.labelLarge,
@@ -329,6 +341,7 @@ fun OnboardingScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Bottom action button
             if (stepIndex < 3) {
                 SteadyPrimaryButton(
                     text = "Continue",
@@ -365,6 +378,7 @@ fun OcdCycleIllustration() {
             val radius = (size.minDimension - stroke) / 2
             val center = Offset(size.width / 2, size.height / 2)
 
+            // Loop arc with arrow
             drawCircle(
                 color = SandAccent,
                 radius = radius,
@@ -372,6 +386,7 @@ fun OcdCycleIllustration() {
                 style = Stroke(width = stroke)
             )
 
+            // Obsession quadrant
             drawArc(
                 color = WarmAmber,
                 startAngle = 180f,
@@ -382,6 +397,7 @@ fun OcdCycleIllustration() {
                 style = Stroke(width = stroke + 2, cap = StrokeCap.Round)
             )
 
+            // Compulsion quadrant
             drawArc(
                 color = DustyBlue,
                 startAngle = 0f,
@@ -414,6 +430,7 @@ fun ErpBreakIllustration() {
             val radius = (size.minDimension - stroke) / 2
             val center = Offset(size.width / 2, size.height / 2)
 
+            // Broken open circle - breaking the loop
             drawArc(
                 color = SagePrimary,
                 startAngle = 30f,
