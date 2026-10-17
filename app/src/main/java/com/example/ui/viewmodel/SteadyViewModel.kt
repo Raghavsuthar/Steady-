@@ -88,7 +88,7 @@ class SteadyViewModel(application: Application) : AndroidViewModel(application) 
 
     init {
         val database = SteadyDatabase.getDatabase(application, viewModelScope)
-        repository = SteadyRepository(database.steadyDao())
+        repository = SteadyRepository(database)
     }
 
     val settings: StateFlow<SettingsEntity?> = repository.settingsFlow

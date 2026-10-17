@@ -1,5 +1,7 @@
 package com.example.data.repository
 
+import androidx.room.withTransaction
+import com.example.data.local.SteadyDatabase
 import com.example.data.local.SteadyDao
 import com.example.data.local.populateSamplePracticeData
 import com.example.data.model.ErpSession
@@ -15,7 +17,8 @@ import kotlinx.coroutines.flow.Flow
 import java.util.Calendar
 import java.util.Locale
 
-class SteadyRepository(private val dao: SteadyDao) {
+class SteadyRepository(private val database: SteadyDatabase) {
+    private val dao: SteadyDao = database.steadyDao()
     val settingsFlow: Flow<SettingsEntity?> = dao.getSettingsFlow()
     val ladderItemsDesc: Flow<List<LadderItem>> = dao.getLadderItemsBySudsDesc()
     val ladderItemsAsc: Flow<List<LadderItem>> = dao.getLadderItemsBySudsAsc()
@@ -45,25 +48,27 @@ class SteadyRepository(private val dao: SteadyDao) {
     suspend fun deleteLadderItem(item: LadderItem) = dao.deleteLadderItem(item)
 
     suspend fun recordSession(session: ErpSession) {
-        dao.insertSession(session)
-        session.ladderItemId?.let { ladderId ->
-            val existing = dao.getLadderItemById(ladderId)
-            if (existing != null) {
-                val newCount = existing.sessionCount + 1
-                // Evidence-informed progression: requires at least 3 repeat sessions with end SUDS <= 40% baseline
-                val isMastered = (newCount >= 3 && session.endSuds <= (existing.baselineSuds * 0.4))
-                val newStatus = if (existing.status == "MASTERED" || isMastered) "MASTERED" else "IN_PROGRESS"
-                dao.updateLadderItem(
-                    existing.copy(
-                        sessionCount = newCount,
-                        lastSuds = session.endSuds,
-                        status = newStatus
+        database.withTransaction {
+            dao.insertSession(session)
+            session.ladderItemId?.let { ladderId ->
+                val existing = dao.getLadderItemById(ladderId)
+                if (existing != null) {
+                    val newCount = existing.sessionCount + 1
+                    // Evidence-informed progression: requires at least 3 repeat sessions with end SUDS <= 40% baseline
+                    val isMastered = (newCount >= 3 && session.endSuds <= (existing.baselineSuds * 0.4))
+                    val newStatus = if (existing.status == "MASTERED" || isMastered) "MASTERED" else "IN_PROGRESS"
+                    dao.updateLadderItem(
+                        existing.copy(
+                            sessionCount = newCount,
+                            lastSuds = session.endSuds,
+                            status = newStatus
+                        )
                     )
-                )
 
-                // If linked to personal goal, increment goal practice count
-                existing.personalGoalId?.let { goalId ->
-                    incrementGoalPractice(goalId, session.timestamp)
+                    // Goal practice history and progress are part of this session transaction.
+                    existing.personalGoalId?.let { goalId ->
+                        incrementGoalPracticeInternal(goalId, session.timestamp)
+                    }
                 }
             }
         }
@@ -76,6 +81,12 @@ class SteadyRepository(private val dao: SteadyDao) {
     suspend fun deleteGoal(goal: PersonalGoal) = dao.deleteGoal(goal)
 
     suspend fun incrementGoalPractice(goalId: Long, timestamp: Long = System.currentTimeMillis()) {
+        database.withTransaction {
+            incrementGoalPracticeInternal(goalId, timestamp)
+        }
+    }
+
+    private suspend fun incrementGoalPracticeInternal(goalId: Long, timestamp: Long) {
         val goal = dao.getGoalById(goalId) ?: return
         val calendar = Calendar.getInstance().apply { timeInMillis = timestamp }
         val localDate = String.format(
@@ -90,6 +101,7 @@ class SteadyRepository(private val dao: SteadyDao) {
         dao.insertGoalPracticeLog(
             GoalPracticeLog(goalId = goalId, localDate = localDate, createdAt = timestamp)
         )
+        // Persisted unique rows, not an in-memory increment, are the source of truth.
         dao.updateGoal(
             goal.copy(
                 daysPracticedCount = dao.getGoalPracticeDayCount(goalId),
